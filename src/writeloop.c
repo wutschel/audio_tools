@@ -222,6 +222,10 @@ int main(int argc, char *argv[])
                exit(22);
            }
            /* truncate to size plus info about used memory */
+           if (force && ftruncate(fd[i-optind], 0) == -1) {
+               fprintf(stderr, "writeloop: Cannot truncate to 0.");
+               exit(23);
+           }
            if (ftruncate(fd[i-optind], sizeof(int)+size) == -1) {
                fprintf(stderr, "writeloop: Cannot truncate to %d.", size);
                exit(23);
