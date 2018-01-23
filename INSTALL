@@ -8,6 +8,13 @@ on Arch:
      sudo pacman -S gcc alsa-lib
 )
 
+For 'resample_soxr' the 'soxr' library is needed.
+(On Debian/Ubuntu, etc, use
+     sudo apt-get install libsoxr-dev
+on other systems you may have to install it by hand, see
+     https://sourceforge.net/projects/soxr/
+)
+
 To compile the programs 'playhrt', 'bufhrt', 'volrace', 'writeloop',
 'catloop', 'cptoshm', 'shmcat' and 'highrestest' say:
 
@@ -21,6 +28,11 @@ code for refreshing or cleaning memory:
 
 Use the latter if your CPU supports VFP, check 'Features' 
 with 'less /proc/cpuinfo'. 
+
+For the resampler 'resample_soxr' (not compiled by default) use
+  make resampler
+or
+  make REFRESH=... resampler
 
 Then copy the files in the 'bin/' directory to some directory in your PATH.
 

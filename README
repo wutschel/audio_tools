@@ -30,6 +30,9 @@ Overview:
  - cptoshm/shmcat
       writing and reading data to and from shared memory
 
+ - resample_soxr
+      standalone resampler in 64-bit operation using soxr library
+
  - scripts/play_*
       example scripts for playing music with programs from this package
  

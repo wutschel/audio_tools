@@ -69,6 +69,11 @@ bin/cptoshm: src/version.h src/cptoshm.c tmp/cprefresh_ass.o tmp/cprefresh.o |bi
 bin/shmcat: src/version.h src/shmcat.c tmp/cprefresh_ass.o tmp/cprefresh.o |bin
 	$(CC) $(CFLAGS) -o bin/shmcat tmp/cprefresh_ass.o tmp/cprefresh.o src/shmcat.c -lrt
 
+bin/resample_soxr: src/version.h src/resample_soxr.c tmp/cprefresh.o |bin
+	$(CC) $(CFLAGS) -o bin/resample_soxr src/resample_soxr.c tmp/cprefresh.o -lsoxr
+
+resampler: bin/resample_soxr
+
 clean: 
 	rm -rf src/version.h bin tmp
 
