@@ -146,6 +146,7 @@ int main(int argc, char *argv[])
     size = 64000;
     shared = 0;
     verbose = 0;
+    semflag = O_CREAT | O_EXCL;
     force = 0;
     inp = 0;  /* stdin */
     while ((optc = getopt_long(argc, argv, "b:f:F:sVh",
