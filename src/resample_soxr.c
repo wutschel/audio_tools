@@ -21,7 +21,7 @@ Compile with
 #include <soxr.h>
 #include "cprefresh.h"
 
-#define LEN 100000
+#define LEN 10000
 
 /* help page */
 /* vim hint to remove resp. add quotes:
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
     error = soxr_process(soxr, inp, mlen, &indone,
                                out, OLEN, &outdone);
     if (mlen > indone) {
-      fprintf(stderr, "resample_soxr: only %ld/%ld processed.\n",indone,mlen);
+      fprintf(stderr, "resample_soxr: only %ld/%ld processed.\n",(long)indone,(long)mlen);
       fflush(stderr);
     }
     if (error) {
