@@ -16,6 +16,7 @@ http://www.gnu.org/licenses/gpl.txt for license details.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
+#include "cprefresh.h"
 
 #define LEN 100000
 #define MAXDELAY 500
@@ -366,10 +367,14 @@ int main(int argc, char *argv[])
         count--;
       }
     }
-    if (floatout)
+    if (floatout) {
+      refreshmem((char*)outfloat, 2*sizeof(float)*mlen);
       check = fwrite((void*)outfloat, 2*sizeof(float), mlen, stdout);
-    else
+    }
+    else {
+      refreshmem((char*)out, 2*sizeof(double)*mlen);
       check = fwrite((void*)out, 2*sizeof(double), mlen, stdout);
+    }
     fflush(stdout);
     /* this should not happen, the whole block should be written */
     if (check < mlen) {

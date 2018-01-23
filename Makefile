@@ -24,8 +24,8 @@ tmp:
 src/version.h: Makefile
 	echo "#define VERSION \""$(VERSION)"\""  > src/version.h
 
-bin/volrace: src/version.h src/volrace.c |bin
-	$(CC) $(CFLAGS) -o bin/volrace src/volrace.c
+bin/volrace: src/version.h src/volrace.c tmp/cprefresh.o tmp/cprefresh_ass.o |bin
+	$(CC) $(CFLAGS) -o bin/volrace src/volrace.c tmp/cprefresh.o tmp/cprefresh_ass.o 
 
 tmp/net.o: src/net.h src/net.c |tmp 
 	$(CC) $(CFLAGS) -c -o tmp/net.o src/net.c
