@@ -15,6 +15,11 @@ on other systems you may have to install it by hand, see
      https://sourceforge.net/projects/soxr/
 )
 
+For 'cat64' the 'sndfile' library is needed.
+(On Debian/Ubuntu, etc, use
+     sudo apt-get install libsndfile-dev
+)
+
 To compile the programs 'playhrt', 'bufhrt', 'volrace', 'writeloop',
 'catloop', 'cptoshm', 'shmcat' and 'highrestest' say:
 
@@ -33,6 +38,12 @@ For the resampler 'resample_soxr' (not compiled by default) use
   make resampler
 or
   make REFRESH=... resampler
+
+For the 'cat64' utility use
+  make bin/cat64
+of
+  make REFRESH=... bin/cat64
+
 
 Then copy the files in the 'bin/' directory to some directory in your PATH.
 

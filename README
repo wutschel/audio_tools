@@ -33,6 +33,10 @@ Overview:
  - resample_soxr
       standalone resampler in 64-bit operation using soxr library
 
+ - cat64
+      read sound file or shared memory and output samples as 64-bit
+      floating point numbers
+
  - scripts/play_*
       example scripts for playing music with programs from this package
  

@@ -74,6 +74,9 @@ bin/resample_soxr: src/version.h src/resample_soxr.c tmp/cprefresh.o tmp/cprefre
 
 resampler: bin/resample_soxr
 
+bin/cat64: src/version.h src/cat64.c tmp/cprefresh.o tmp/cprefresh_ass.o |bin
+	$(CC) $(CFLAGS) -o bin/cat64 src/cat64.c  tmp/cprefresh.o tmp/cprefresh_ass.o -lsndfile -lrt
+
 clean: 
 	rm -rf src/version.h bin tmp
 
