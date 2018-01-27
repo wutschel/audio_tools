@@ -2,6 +2,12 @@
 
 0.7 to 0.8
 
+- added utility 'resample_soxr' for highest quality resampling with
+  64 bit operations.
+
+- added utility 'cat64' to translate audio file or shared memory to 
+  raw 64 bit floating point samples.
+
 - added option --max-bad-reads to 'playhrt' (program stops when given 
   number of input blocks was too small, the value 4 was hardcoded before)
 
