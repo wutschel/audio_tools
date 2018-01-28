@@ -48,7 +48,7 @@ void usage( ) {
 "      name of the input audio file. If not given you must use\n"
 "      the next option.\n"
 "\n"
-"  --shmname=sname, -i sname\n"
+"  --shmname=sname, -m sname\n"
 "      name of an audio file in shared memory.\n"
 "\n"
 "  --start=intval, -s intval\n"
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
   /* read command line options */
   static struct option longoptions[] = {
       {"file", required_argument, 0, 'f' },
-      {"shmname", required_argument, 0, 'i' },
+      {"shmname", required_argument, 0, 'm' },
       {"start", required_argument, 0, 's' },
       {"until", required_argument, 0, 'u' },
       {"number-frames", required_argument, 0, 'n' },
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
       case 'f':
         fnam = strdup(optarg);
         break;
-      case 'i':
+      case 'm':
         memname = strdup(optarg);
         break;
       case 'p':
