@@ -8,10 +8,10 @@ on Arch:
      sudo pacman -S gcc alsa-lib
 )
 
-For 'resample_soxr' the 'soxr' library is needed.
+For 'resample_soxr' the 'soxr' and 'sndfile' libraries are needed.
 (On Debian/Ubuntu, etc, use
-     sudo apt-get install libsoxr-dev
-on other systems you may have to install it by hand, see
+     sudo apt-get install libsoxr-dev libsndfile-dev
+on other systems you may have to install libsoxr by hand, see
      https://sourceforge.net/projects/soxr/
 )
 
