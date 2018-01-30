@@ -37,7 +37,7 @@ void usage( ) {
 "\n"
 "  resample_soxr [options] \n"
 "\n"
-"  By default this command works as a resampling filter for stereo audio \n"
+"  By default this program works as a resampling filter for stereo audio \n"
 "  streams in raw double format (in some programs denoted FLOAT64_LE).\n"
 "\n"
 "  Here 'filter' means that input comes from stdin and output is\n"
@@ -51,7 +51,12 @@ void usage( ) {
 "  part of the file.\n"
 "\n"
 "  The main options are the input sample rate and the output sample rate.\n"
-"  The output volume can also be adjusted. \n"
+"\n"
+"  The volume of the output can be changed and a RACE filter can be applied\n"
+"  to the output; see options '--volume', '--race-delay' and '--race-volume'.\n"
+"  If instead of these options their values are given in a file via \n"
+"  '--param-file', then these parameters can be changed while the program\n"
+"  is running. See 'volrace --help' for more information.\n"
 "\n"
 "  This program uses the 'soxr' standalone resampling library (see\n"
 "  https://sourceforge.net/projects/soxr/) with the highest quality \n"
@@ -74,19 +79,14 @@ void usage( ) {
 "      the output sample rate as floating point number (must not be an \n"
 "      integer). Default is 192000.\n"
 "\n"
-"  --volume=floatval, -v floatval\n"
-"      the volume as floating point factor (e.g., '0.5' for an attenuation\n"
-"      of 6dB). A small attenuation (say, 0.9) can be useful to avoid \n"
-"      intersample clipping. Default is 1.0, that is no volume change.\n"
-"\n"
 "  --channels=intval, -c intval\n"
 "      number of interleaved channels in the input. Default is 2 (stereo).\n"
 "      In case of input from a file this number is overwritten by the \n"
 "      the number of channels in the file.\n"
 "\n"
 "  --buffer-length=intval, -b intval\n"
-"      the size of the input buffer in number of frames. The default is\n"
-"      8192 and should usually be fine.\n"
+"      the size of the input buffer in number of frames. The default\n"
+"      (and minimal value) is 8192 and should usually be fine.\n"
 "\n"
 "  --phase=floatval, -P floatval\n"
 "      the phase response of the filter used during resampling; see the \n"
@@ -116,6 +116,37 @@ void usage( ) {
 "  --number-frames=intval, -n intval\n"
 "      number of frames (from start frame) to write.\n"
 "      Default is all frames until end of the audio file.\n"
+"\n"
+"And here are options for volume and RACE filtering of output.\n"
+"\n"
+"  --volume=floatval, -v floatval\n"
+"      the volume as floating point factor (e.g., '0.5' for an attenuation\n"
+"      of 6dB). A small attenuation (say, 0.9) can be useful to avoid \n"
+"      intersample clipping. Default is 1.0, that is no volume change.\n"
+"      The default is '1.0', that is no volume change.\n"
+"\n"
+"  --race-delay=val, -d val\n"
+"      the delay for RACE as (integer) number of samples (per channel).\n"
+"      Default is 12.\n"
+"\n"
+"  --race-volume=floatval, -a floatval\n"
+"      the volume of the RACE signal copied to the other channel.\n"
+"      Default is '0.0', that is no RACE filter.\n"
+"\n"
+"  --param-file=fname, -f fname\n"
+"      the name of a file which can be given instead of the previous three\n"
+"      options. That file must contain the values for --volume, \n"
+"      --race-delay and --race-volume, separated by whitespace.\n"
+"      This file is reread by the program when it was changed, and the\n"
+"      parameters are faded to the new values. This way this program can\n"
+"      be used as volume (and RACE parameter) control during audio playback.\n"
+"      The file may only contain the value of --volume, in this case RACE\n"
+"      will be disabled.\n"
+"\n"
+"  --fading-length=intval, -l intval\n"
+"      number of frames used for fading to new parameters (when the\n"
+"      file given in --param-file was changed). Default is 44100, for high \n"
+"      sample rates a larger value may be desirable.\n"
 "\n"
 "  --help, -h\n"
 "      show this help.\n"
@@ -148,13 +179,82 @@ void usage( ) {
 "          sox -t raw -e float -b 64 -c 2 -r 96000 - -e signed -b 32 \\\n"
 "          reccorrected.wav\n"
 "\n"
+"   Read input from file in shared memory, resample to 192k, apply race \n"
+"   filter and pipe into 'brutefir' convolver:\n"
+"\n"
+"      cptoshm --file=data.flac --shmname=/pl.flac\n"
+"      resample_soxr --shmname=/pl.flac --param-file=/tmp/volraceparams \\n"
+"           --outrate=192000  --fading-length=100000 | \\n"
+"        brutefir /tmp/bfconf | ...\n"
 );
 }
+
+/* utility to get modification time of a file in nsec precision */
+double mtimens (char* pnam) {
+  struct stat sb;
+  if (stat(pnam, &sb) == -1)
+     return 0.0;
+  else
+    return (double)sb.st_mtim.tv_sec + (double) sb.st_mtim.tv_nsec*0.000000001;
+}
+
+/* read parameters for vol, delay, att from file
+   use init==1 during initialization, program will terminate in case of
+   problem; later use init==0, if a problem occurs, the parameters are
+   just left as they are                                                */
+int getraceparams(char* pnam, double* vp, int* delay, double* att, int init) {
+  FILE* params;
+  int ok;
+  params = fopen(pnam, "r");
+  if (!params) {
+     if (init) {
+       fprintf(stderr, "resample_soxr: Cannot open %s.\n", pnam);
+       fflush(stderr);
+       exit(2);
+     } else
+       return 0;
+  }
+  ok = fscanf(params, "%lf %d %lf", vp, delay, att);
+  if (ok == EOF || ok == 0) {
+     fclose(params);
+     if (init) {
+       fprintf(stderr, "resample_soxr: Cannot read parameters from  %s.\n", pnam);
+       fflush(stderr);
+       exit(3);
+     }  else
+       return 0;
+  }
+  if (ok < 3) {
+     /* allow only volume in file, disable RACE */
+     *delay = 12;
+     *att = 0.0;
+  }
+  fclose(params);
+  return 1;
+}
+
+/* correct too bad values */
+void sanitizeraceparams(int* delay, double* att, long nch){
+    if (*delay < 1 || *delay > 512) {
+        fprintf(stderr, "resample_soxr: Invalid race delay, disabling.\n"); fflush(stderr);
+        *delay = 12;
+        *att = 0.0;
+    }
+    if (*att < -0.95 || *att > 0.95) {
+        fprintf(stderr, "resample_soxr: Invalid race att, using 0.0 (disabled).\n"); fflush(stderr);
+        *att = 0.0;
+    }
+    if (nch != 2 && *att != 0.0) {
+        fprintf(stderr, "resample_soxr: race only possible for stereo, disabling.\n");
+        *att = 0.0;
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
   /* variables for the resampler */
-  double vol, inrate, outrate, phase, OLEN;
+  double inrate, outrate, phase, OLEN;
   double *inp, *out;
   int verbose, optc, fd;
   long intotal = 0, outtotal = 0, blen, mlen, check, i, nch;
@@ -168,6 +268,13 @@ int main(int argc, char *argv[])
   sf_count_t start, until, total;
   SNDFILE *sndfile=NULL;
   SF_INFO sfinfo;
+  /* variables for optional volume and race parameters */
+  double vol, nvol, att, natt, vdiff=0.0, carry[1024];
+  double ptime=0.0, ntime;
+  int delay, ndelay, change;
+  long fadinglength, fadecount=-1;
+  char *pnam;
+  for(i=0; i<1024; carry[i] = 0.0, i++);
 
   if (argc == 1) {
       usage();
@@ -179,6 +286,10 @@ int main(int argc, char *argv[])
       {"outrate", required_argument, 0, 'o' },
       {"phase", required_argument, 0, 'P' },
       {"volume", required_argument, 0, 'v' },
+      {"race-delay", required_argument, 0, 'd' },
+      {"race-volume", required_argument, 0, 'a' },
+      {"param-file",  required_argument, 0, 'F'},
+      {"fading-length", required_argument, 0, 'l' },
       {"channels", required_argument, 0, 'c' },
       {"file", required_argument, 0, 'f' },
       {"shmname", required_argument, 0, 'm' },
@@ -192,7 +303,6 @@ int main(int argc, char *argv[])
       {0,         0,        0,   0 }
   };
   /* defaults */
-  vol = 1.0;
   inrate = 44100.0;
   outrate = 192000.0;
   phase = 25.0; 
@@ -203,8 +313,13 @@ int main(int argc, char *argv[])
   start = 0;
   until = 0;
   total = 0;
+  vol = 1.0;
+  att = 0.0;
+  delay = 12;
+  fadinglength = 44100;
+  pnam = NULL;
   verbose = 0;
-  while ((optc = getopt_long(argc, argv, "i:o:v:s:u:n:b:f:m:pVh",
+  while ((optc = getopt_long(argc, argv, "i:o:v:s:u:n:d:a:l:F:b:f:m:pVh",
           longoptions, &optind)) != -1) {
       switch (optc) {
       case 'v':
@@ -235,12 +350,30 @@ int main(int argc, char *argv[])
         break;
       case 'b':
         blen = atoi(optarg);
+        if (blen < 1024)
+            blen = 8192;
         break;
       case 'f':
         fnam = strdup(optarg);
         break;
       case 'm':
         memname = strdup(optarg);
+        break;
+      case 'd':
+        delay = atoi(optarg);
+        break;
+      case 'a':
+        att = atof(optarg);
+        break;
+      case 'l':
+        fadinglength = atoi(optarg);
+        if (fadinglength < 1 || fadinglength > 400000) {
+           fadinglength = 44100;
+        }
+        break;
+      case 'F':
+        pnam = strdup(optarg);
+        getraceparams(pnam, &vol, &delay, &att, 1);
         break;
       case 'p':
         verbose = 1;
@@ -260,6 +393,10 @@ int main(int argc, char *argv[])
       fprintf(stderr, "resample_soxr: nothing to read.\n");
       exit(1);
   }
+  sanitizeraceparams(&delay, &att, nch);
+  /* remember modification time of race parameter file */
+  if (pnam)
+      ptime = mtimens(pnam);
 
   /* open sound file if fnam or memname given */
   sfinfo.format = 0;
@@ -384,10 +521,38 @@ int main(int argc, char *argv[])
       exit(3);
     }
     /* apply volume change */
-    if (vol != 1.0) {
-      for(i=0; i<2*outdone; i++)
-        out[i] *= vol;
+    if (vol != 1.0 || fadecount > 0) {
+        for(i=0; i<2*outdone; i++) {
+            out[i] *= vol;
+            /* change vol slightly while fading to new one */
+            if (fadecount > 0) {
+              vol += vdiff;
+              fadecount--;
+              if (fadecount == 0) {
+                  /* now set vol to precisely the new value and disable
+                     fading */
+                  vol = nvol;
+                  fadecount = -1;
+              }
+            }
+        }
     }
+    /* apply race filter */
+    if (att != 0.0) {
+        for(i=0; i<delay; i++) {
+            out[2*i+1] -= att*carry[2*i];
+            out[2*i] -= att*carry[2*i+1];
+        }
+        for(i=delay; i<outdone; i++) {
+            out[2*i+1] -= att*out[2*(i-delay)];
+            out[2*i] -= att*out[2*(i-delay)+1];
+        }
+        for(i=0; i<delay; i++) {
+            carry[2*i] = out[2*(outdone-delay+i)];
+            carry[2*i+1] = out[2*(outdone-delay+i)+1];
+        }
+    }
+ 
     /* write output */
     refreshmem((char*)out, nch*sizeof(double)*outdone);
     check = fwrite((void*)out, nch*sizeof(double), outdone, stdout);
@@ -403,6 +568,31 @@ int main(int argc, char *argv[])
     outtotal += outdone;
     if (mlen == 0)
       break;
+
+    /* if we are not fading to new volume/race parameters we check after each 
+       block if the modification time of the parameter file has changed; if yes
+       we try to read new values; in case of a problem we stay with the old
+       parameters */
+    if (pnam != NULL && fadecount < 0) {
+        ntime = mtimens(pnam);
+        if (ntime > ptime+0.00001) {
+           change = getraceparams(pnam, &nvol, &ndelay, &natt, 0);
+           if (change) {
+             sanitizeraceparams(&ndelay, &natt, nch);
+             /* we fade to new vol within a number of frames */
+             fadecount = 2*fadinglength;
+             vdiff = (nvol-vol)/fadecount;
+             att = natt;
+             ptime = ntime;
+             delay = ndelay;
+             if (verbose) {
+                fprintf(stderr, "resample_soxr: Reread new race parameters: (%f) ", ntime);
+                fprintf(stderr, "vol %.3f, race att %.3f delay %ld.\n", 
+                                (double)nvol, (double)natt, (long)ndelay);
+             }
+           }
+        }
+    }
   }
   soxr_delete(soxr);
   free(out);
