@@ -95,6 +95,13 @@ void usage( ) {
 "      50 (linear phase) and 25 (intermediate phase). The default is 25,\n"
 "      and should usually be fine.\n"
 "\n"
+"  --band-width=floatval, -B floatval\n"
+"     the band-width of the filter used during resampling; see the \n"
+"     documentation of the rate effect in 'sox' for more details. The value\n"
+"     is given as percentage (of the Nyquist frequency of the smaller \n"
+"     sampling rate). The allowed range is 74.0..99.7, the default is 91.09\n"
+"     (that is the filter is flat up to about 20kHz).\n"
+"\n"
 "  --file=fname, -f fname\n"
 "      name of an input audio file (flac, wav, aiff, ...). The default\n"
 "      is input from stdin.\n"
@@ -254,7 +261,7 @@ void sanitizeraceparams(int* delay, double* att, long nch){
 int main(int argc, char *argv[])
 {
   /* variables for the resampler */
-  double inrate, outrate, phase, OLEN;
+  double inrate, outrate, phase, bwidth, OLEN;
   double *inp, *out;
   int verbose, optc, fd;
   long intotal = 0, outtotal = 0, blen, mlen, check, i, nch;
@@ -285,6 +292,7 @@ int main(int argc, char *argv[])
       {"inrate", required_argument, 0, 'i' },
       {"outrate", required_argument, 0, 'o' },
       {"phase", required_argument, 0, 'P' },
+      {"band-width", required_argument, 0, 'B' },
       {"volume", required_argument, 0, 'v' },
       {"race-delay", required_argument, 0, 'd' },
       {"race-volume", required_argument, 0, 'a' },
@@ -306,6 +314,7 @@ int main(int argc, char *argv[])
   inrate = 44100.0;
   outrate = 192000.0;
   phase = 25.0; 
+  bwidth = 0.0;
   nch = 2;
   blen = 8192;
   fnam = NULL;
@@ -319,7 +328,7 @@ int main(int argc, char *argv[])
   fadinglength = 44100;
   pnam = NULL;
   verbose = 0;
-  while ((optc = getopt_long(argc, argv, "i:o:P:v:s:u:n:d:a:l:F:b:f:m:pVh",
+  while ((optc = getopt_long(argc, argv, "i:o:P:B:v:s:u:n:d:a:l:F:b:f:m:pVh",
           longoptions, &optind)) != -1) {
       switch (optc) {
       case 'v':
@@ -335,6 +344,11 @@ int main(int argc, char *argv[])
         phase = atof(optarg);
         if (phase < 0.0 || phase > 100.0)
            phase = 25.0;
+        break;
+      case 'B':
+        bwidth = atof(optarg);
+        if (bwidth < 74.0 || bwidth > 99.7)
+           bwidth = 0.0;
         break;
       case 'c':
         nch = atoi(optarg);
@@ -470,9 +484,12 @@ int main(int argc, char *argv[])
   soxr_quality_spec_t  q_spec = soxr_quality_spec(0x17, 0);
   q_spec.phase_response = phase;
   q_spec.precision = 33.0;
+  if (bwidth != 0.0)
+     q_spec.passband_end = bwidth/100.0;
   if (verbose) {
-      fprintf(stderr, "resample_soxr: resampling with quality %.3f and phase %.3f\n", 
-              q_spec.precision, q_spec.phase_response);
+      fprintf(stderr, "resample_soxr: resampling with quality %.3f, "
+              "phase %.3f, bandwidth %.3f\n", q_spec.precision,
+              q_spec.phase_response, q_spec.passband_end*100.0);
       fflush(stderr);
   }
   soxr_io_spec_t const io_spec = soxr_io_spec(SOXR_FLOAT64_I,SOXR_FLOAT64_I);
