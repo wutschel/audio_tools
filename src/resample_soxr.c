@@ -133,7 +133,7 @@ void usage( ) {
 "      the volume of the RACE signal copied to the other channel.\n"
 "      Default is '0.0', that is no RACE filter.\n"
 "\n"
-"  --param-file=fname, -f fname\n"
+"  --param-file=fname, -F fname\n"
 "      the name of a file which can be given instead of the previous three\n"
 "      options. That file must contain the values for --volume, \n"
 "      --race-delay and --race-volume, separated by whitespace.\n"
@@ -183,8 +183,8 @@ void usage( ) {
 "   filter and pipe into 'brutefir' convolver:\n"
 "\n"
 "      cptoshm --file=data.flac --shmname=/pl.flac\n"
-"      resample_soxr --shmname=/pl.flac --param-file=/tmp/volraceparams \\n"
-"           --outrate=192000  --fading-length=100000 | \\n"
+"      resample_soxr --shmname=/pl.flac --param-file=/tmp/volraceparams \\\n"
+"           --outrate=192000  --fading-length=100000 | \\\n"
 "        brutefir /tmp/bfconf | ...\n"
 );
 }
