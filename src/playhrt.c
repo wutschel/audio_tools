@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
     verbose = 0;
     dobufstats = 1;
     countdelay = 1;
-    while ((optc = getopt_long(argc, argv, "r:p:Sb:i:n:s:f:k:Mc:P:d:e:o:NvVh",
+    while ((optc = getopt_long(argc, argv, "r:p:Sb:D:i:n:s:f:k:Mc:P:d:e:o:NvVh",
             longoptions, &optind)) != -1) {
         switch (optc) {
         case 'r':
