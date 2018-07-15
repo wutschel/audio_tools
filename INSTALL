@@ -20,13 +20,20 @@ For 'cat64' the 'sndfile' library is needed.
      sudo apt-get install libsndfile-dev
 )
 
+To get the newest version of the code use (assuming you have installed 'git'):
+     git clone https://bitbucket.org/frank_l/frankl_stereo/
+     cd frankl_stereo/
+If you have done this before, update to newest version inside that directory:
+     git pull
+
+
 To compile the programs 'playhrt', 'bufhrt', 'volrace', 'writeloop',
 'catloop', 'cptoshm', 'shmcat' and 'highrestest' say:
 
   make
 
-On ARM architecture there are alternative calls which use some assembler
-code for refreshing or cleaning memory:
+On ARM architecture there are recommended alternative calls which use 
+some assembler code for refreshing or cleaning memory:
 
   make REFRESH=ARM
   make REFRESH=VFP
