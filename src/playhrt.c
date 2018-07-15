@@ -174,6 +174,11 @@ void usage( ) {
 "      option disabled this check and adjustment. So, use this option\n"
 "      only after finding the correct --extra-bytes-per-second parameter.\n"
 "\n"
+"  --stripped, -X\n"
+"      experimental option: only to be used when no statistics functions\n"
+"      are switched on. With this option specific code is run which has the\n"
+"      code for statistics stripped.\n"
+"\n"
 "  --in-net-buffer-size=intval, -N intval\n"
 "      when reading from the network this allows to set the buffer\n"
 "      size for the incoming data. This is for finetuning only, normally\n"
@@ -266,7 +271,7 @@ void usage( ) {
 int main(int argc, char *argv[])
 {
     int sfd, s, moreinput, err, verbose, nrchannels, startcount, sumavg,
-        innetbufsize, dobufstats, countdelay, maxbad;
+        stripped, innetbufsize, dobufstats, countdelay, maxbad;
     long blen, hlen, ilen, olen, extra, loopspersec, nrdelays, sleep,
          nsec, count, wnext, badloops, badreads, readmissing, avgav, checkav;
     long long icount, ocount, badframes;
@@ -308,6 +313,7 @@ int main(int argc, char *argv[])
         {"in-net-buffer-size", required_argument, 0, 'K' },
         {"extra-frames-out", required_argument, 0, 'o' },
         {"non-blocking-write", no_argument, 0, 'N' },
+        {"stripped", no_argument, 0, 'X' },
         {"overwrite", required_argument, 0, 'O' },
         {"verbose", no_argument, 0, 'v' },
         {"no-buf-stats", no_argument, 0, 'y' },
@@ -345,6 +351,7 @@ int main(int argc, char *argv[])
     innetbufsize = 0;
     corr = 0;
     verbose = 0;
+    stripped = 0;
     dobufstats = 1;
     countdelay = 1;
     while ((optc = getopt_long(argc, argv, "r:p:Sb:D:i:n:s:f:k:Mc:P:d:e:o:NvVh",
@@ -428,6 +435,9 @@ int main(int argc, char *argv[])
           break;
         case 'v':
           verbose += 1;
+          break;
+        case 'X':
+          stripped = 1;
           break;
         case 'y':
           dobufstats = 0;
@@ -734,6 +744,94 @@ int main(int argc, char *argv[])
           }
           if (wnext == 0)
               break;    /* done */
+      }
+    } else if (access == SND_PCM_ACCESS_MMAP_INTERLEAVED && looperr == 0.0 &&
+               stripped) {
+     /* this is the same code as below, but with all verbosity, printf,
+        offset and statistics code removed */
+     startcount = hwbufsize/(2*olen);
+     if (clock_gettime(CLOCK_MONOTONIC, &mtime) < 0) {
+          exit(19);
+      }
+      for (count=1; count <= startcount; count++) {
+          /* start playing when half of hwbuffer is filled */
+          if (count == startcount)  snd_pcm_start(pcm_handle);
+
+          frames = olen;
+          avail = snd_pcm_avail_update(pcm_handle);
+          snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
+          ilen = frames * bytesperframe;
+          iptr = areas[0].addr + offset * bytesperframe;
+          s = read(sfd, iptr, ilen);
+          mtime.tv_nsec += nsec;
+          if (mtime.tv_nsec > 999999999) {
+            mtime.tv_nsec -= 1000000000;
+            mtime.tv_sec++;
+          }
+          refreshmem(iptr, s);
+          clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &mtime, NULL);
+	  refreshmem(iptr, s);
+          snd_pcm_mmap_commit(pcm_handle, offset, frames);
+          icount += s;
+          ocount += s;
+          if (s == 0) /* done */
+              break;
+      }
+      while (1) {
+          frames = olen;
+          avail = snd_pcm_avail_update(pcm_handle);
+          snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
+          ilen = frames * bytesperframe;
+          iptr = areas[0].addr + offset * bytesperframe;
+          s = read(sfd, iptr, ilen);
+          mtime.tv_nsec += nsec;
+          if (mtime.tv_nsec > 999999999) {
+            mtime.tv_nsec -= 1000000000;
+            mtime.tv_sec++;
+          }
+          refreshmem(iptr, s);
+          clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &mtime, NULL);
+	  refreshmem(iptr, s);
+          snd_pcm_mmap_commit(pcm_handle, offset, frames);
+          icount += s;
+          ocount += s;
+          if (s == 0) /* done */
+              break;
+      }
+    } else if (access == SND_PCM_ACCESS_MMAP_INTERLEAVED && stripped) {
+     /* this is the same code as below, but with all verbosity, printf  and
+        statistics code removed */
+     startcount = hwbufsize/(2*olen);
+     if (clock_gettime(CLOCK_MONOTONIC, &mtime) < 0) {
+          exit(19);
+      }
+      for (count=1, off=looperr; 1; count++, off+=looperr) {
+          /* start playing when half of hwbuffer is filled */
+          if (count == startcount)  snd_pcm_start(pcm_handle);
+
+          frames = olen;
+          if (off > 1.0) {
+              frames++;
+              off -= 1.0;
+          }
+          avail = snd_pcm_avail_update(pcm_handle);
+          snd_pcm_mmap_begin(pcm_handle, &areas, &offset, &frames);
+          ilen = frames * bytesperframe;
+          iptr = areas[0].addr + offset * bytesperframe;
+          s = read(sfd, iptr, ilen);
+          mtime.tv_nsec += nsec;
+          if (mtime.tv_nsec > 999999999) {
+            mtime.tv_nsec -= 1000000000;
+            mtime.tv_sec++;
+          }
+          refreshmem(iptr, s);
+          clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &mtime, NULL);
+	  refreshmem(iptr, s);
+          snd_pcm_mmap_commit(pcm_handle, offset, frames);
+          icount += s;
+          ocount += s;
+          if (s == 0) /* done */
+              break;
       }
     } else if (access == SND_PCM_ACCESS_MMAP_INTERLEAVED) {
       /* mmap access */
