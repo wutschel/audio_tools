@@ -73,8 +73,12 @@ void usage( ) {
 "      left over from former calls or other programs. With this option these\n"
 "      are overwritten.\n"
 "\n"
+"  --skip=intval, -S intval\n"
+"      if input is a file then skip intval bytes at the beginning, the \n"
+"      argument is rounded down to a multiple of 8.\n"
+"\n"
 "  --verbose, -v\n"
-"    print some information during startup.\n"
+"      print some information during startup.\n"
 "\n"
 "  --version, -V\n"
 "      print information about the version of the program and abort.\n"
@@ -123,12 +127,14 @@ int main(int argc, char *argv[])
     void * buf;
     int outfile, fd[100], inp, i, shared, verbose, force, blocksize,
         semflag, size, ret, sz, c, optc;
+    off_t skip, checkskip;
 
     /* read command line options */
     static struct option longoptions[] = {
         {"block-size", required_argument, 0,  'b' },
         {"from-file", required_argument, 0, 'F' },
         {"file-size", required_argument,       0,  'f' },
+        {"skip", required_argument,       0,  'S' },
         {"shared", no_argument, 0, 's' },
         {"force-shm", no_argument, 0, 'x' },
         {"verbose", no_argument, 0, 'v' },
@@ -149,6 +155,7 @@ int main(int argc, char *argv[])
     semflag = O_CREAT | O_EXCL;
     force = 0;
     inp = 0;  /* stdin */
+    skip = 0;
     while ((optc = getopt_long(argc, argv, "b:f:F:sVh",
             longoptions, &optind)) != -1) {
         switch (optc) {
@@ -163,6 +170,13 @@ int main(int argc, char *argv[])
             fprintf(stderr, "writeloop: Cannot open input file %s.\n", optarg);
             exit(3);
           }
+          break;
+        case 'S':
+          skip = (off_t)atoll(optarg);
+          while ((skip % 8) != 0)
+            skip--;
+          if (skip < 0)
+            skip = 0;
           break;
         case 's':
           shared = 1;
@@ -181,6 +195,13 @@ int main(int argc, char *argv[])
         default:
           usage();
           exit(2);
+        }
+    }
+    if (skip && inp) { /* seek if skip is nonzero and inp is a file */
+        checkskip = lseek(inp, skip, SEEK_SET);
+        if (checkskip != skip) {
+          fprintf(stderr, "writeloop: cannot seek to %lld \n", skip);
+          exit(17);
         }
     }
     if (blocksize > size) {
