@@ -134,6 +134,10 @@ void usage( ) {
 "      the buffer content is written out in a sleep-write loop (without\n"
 "      reading input). See below for an example.\n"
 "\n"
+"  --dsync, -d\n"
+"      output file will be opened with O_DSYNC option, this is a hint to\n"
+"      the system to write data to the hardware immediately.\n"
+"\n"
 "  --in-net-buffer-size=intval, -K intval\n"
 "  --out-net-buffer-size=intval, -L intval\n"
 "      this if for finetuning only. It specifies the buffer size to\n"
@@ -171,7 +175,7 @@ void usage( ) {
 "  We use interval mode to copy music files to a hard disk. (Yes, different\n"
 "  copies of a music file on the same disk can sound differently . . .):\n"
 "\n"
-"  bufhrt --interval --file music.flac --outfile=music_better.flac \\\n"
+"  bufhrt --interval --file music.flac --dsync --outfile=music_better.flac \\\n"
 "         --buffer-size=500000000 --loops-per-second=2000 \\\n"
 "         --bytes-per-second=6144000\n"
 "\n"
@@ -194,7 +198,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in serv_addr;
     int listenfd, connfd, ifd, s, moreinput, optval=1, verbose, rate,
         extrabps, bytesperframe, optc, interval, shared, innetbufsize,
-        outnetbufsize;
+        outnetbufsize, dsync;
     long blen, hlen, ilen, olen, outpersec, loopspersec, nsec, count, wnext,
          badreads, badreadbytes, badwrites, badwritebytes, lcount;
     long long icount, ocount;
@@ -221,6 +225,7 @@ int main(int argc, char *argv[])
         {"bytes-per-second", required_argument, 0,  'm' },
         {"sample-rate", required_argument, 0,  's' },
         {"sample-format", required_argument, 0, 'f' },
+        {"dsync", no_argument, 0, 'd' },
         {"file", required_argument, 0, 'F' },
         {"host-to-read", required_argument, 0, 'H' },
         {"port-to-read", required_argument, 0, 'P' },
@@ -243,6 +248,7 @@ int main(int argc, char *argv[])
     }
     /* defaults */
     port = NULL;
+    dsync = 0;
     outfile = NULL;
     blen = 65536;
     /* default input is stdin */
@@ -269,9 +275,16 @@ int main(int argc, char *argv[])
         case 'p':
           port = optarg;
           break;
+        case 'd':
+          dsync = 1;
+          break;
         case 'o':
           outfile = optarg;
-          if ((connfd = open(outfile, O_WRONLY | O_CREAT, 00644)) == -1) {
+          if (dsync) 
+              connfd = open(outfile, O_WRONLY | O_CREAT | O_DSYNC, 00644);
+          else
+              connfd = open(outfile, O_WRONLY | O_CREAT, 00644);
+          if (connfd == -1) {
               fprintf(stderr, "bufhrt: Cannot open output file %s.\n   %s\n",
                                outfile, strerror(errno));
               exit(3);

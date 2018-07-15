@@ -2,6 +2,8 @@
 
 0.7 to 0.8
 
+- new --dsync option for 'bufhrt', to force fast writing to hardware.
+
 - added utility 'resample_soxr' for highest quality resampling with
   64 bit operations (abilities of reading files as with 'cat64' and 
   filtering output as with 'volrace' are built into this program).
