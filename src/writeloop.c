@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     if (skip && inp) { /* seek if skip is nonzero and inp is a file */
         checkskip = lseek(inp, skip, SEEK_SET);
         if (checkskip != skip) {
-          fprintf(stderr, "writeloop: cannot seek to %lld \n", skip);
+          fprintf(stderr, "writeloop: cannot seek to %lld \n", (long long)skip);
           exit(17);
         }
     }
