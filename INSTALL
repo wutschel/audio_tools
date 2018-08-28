@@ -11,7 +11,8 @@ on Arch:
 For 'resample_soxr' the 'soxr' and 'sndfile' libraries are needed.
 (On Debian/Ubuntu, etc, use
      sudo apt-get install libsoxr-dev libsndfile-dev
-on other systems you may have to install libsoxr by hand, see
+on other systems you may find similar packages via their package manager
+or you may have to install libsoxr by hand, see
      https://sourceforge.net/projects/soxr/
 )
 
@@ -28,7 +29,7 @@ If you have done this before, update to newest version inside that directory:
 
 
 To compile the programs 'playhrt', 'bufhrt', 'volrace', 'writeloop',
-'catloop', 'cptoshm', 'shmcat' and 'highrestest' say:
+'catloop', 'cptoshm', 'shmcat', 'cat64', 'resample_soxr' and 'highrestest' say:
 
   make
 
@@ -41,18 +42,14 @@ some assembler code for refreshing or cleaning memory:
 Use the latter if your CPU supports VFP, check 'Features' 
 with 'less /proc/cpuinfo'. 
 
-For the resampler 'resample_soxr' (not compiled by default) use
-  make resampler
-or
-  make REFRESH=... resampler
+Optionally, you may strip the generated binaries:
 
-For the 'cat64' utility use
-  make bin/cat64
-of
-  make REFRESH=... bin/cat64
+  strip bin/*
 
-
-Then copy the files in the 'bin/' directory to some directory in your PATH.
+Then copy the files in the 'bin/' directory to some directory in your PATH
+(e.g.,
+  sudo cp bin/* /usr/local/bin/
+)
 
 To read the documentation of the programs you can call them without option
 or with --help.
@@ -66,10 +63,6 @@ kernel with highres timers enabled. This is the case for most Linux
 distributions, you can check it by running the utility 'bin/highrestest'.
 
 Have fun!
-
-
-
-
 
 ##  We keep here for a while some old hints for compiling earlier versions
 ##  of these programs. This can still be done but is no longer needed, instead 

@@ -13,7 +13,8 @@ CFLAGSNO=-O0 -Wall -fgnu89-inline -DREFRESH$(REFRESH)
 
 # targets
 ALL: bin tmp bin/volrace bin/bufhrt bin/highrestest \
-     bin/writeloop bin/catloop bin/playhrt bin/cptoshm bin/shmcat
+     bin/writeloop bin/catloop bin/playhrt bin/cptoshm bin/shmcat \
+     bin/resample_soxr bin/cat64
 
 bin:
 	mkdir -p bin
