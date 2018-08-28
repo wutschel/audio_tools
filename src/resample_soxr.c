@@ -554,8 +554,8 @@ int main(int argc, char *argv[])
             }
         }
     }
-    /* apply race filter */
-    if (att != 0.0) {
+    /* apply race filter if output is longer than delay */
+    if (att != 0.0 && outdone > delay) {
         for(i=0; i<delay; i++) {
             out[2*i+1] -= att*carry[2*i];
             out[2*i] -= att*carry[2*i+1];
