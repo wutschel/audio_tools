@@ -2,6 +2,11 @@
 
 0.7 to 0.8
 
+- added --replay-gain option to resample_soxr.
+
+- fixed possible segfault of resample_soxr in rare
+  cases of parameter combinations involving RACE.
+
 - added experimental --stripped option for playhrt.
 
 - added --skip option for 'writeloop' with input from a file.
