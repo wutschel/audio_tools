@@ -132,6 +132,11 @@ void usage( ) {
 "      intersample clipping. Default is 1.0, that is no volume change.\n"
 "      The default is '1.0', that is no volume change.\n"
 "\n"
+"  --replay-gain=floatval, -r floatval\n"
+"      the value of --volume is multiplied by this factor.\n"
+"      The default is '1.0'. This can be useful if the volume is changed\n"
+"      during runtime via a --param-file.\n"
+"\n"
 "  --race-delay=val, -d val\n"
 "      the delay for RACE as (integer) number of samples (per channel).\n"
 "      Default is 12.\n"
@@ -276,7 +281,7 @@ int main(int argc, char *argv[])
   SNDFILE *sndfile=NULL;
   SF_INFO sfinfo;
   /* variables for optional volume and race parameters */
-  double vol, nvol, att, natt, vdiff=0.0, carry[1024];
+  double gain, vol, vg, nvol, att, natt, vdiff=0.0, carry[1024];
   double ptime=0.0, ntime;
   int delay, ndelay, change;
   long fadinglength, fadecount=-1;
@@ -293,6 +298,7 @@ int main(int argc, char *argv[])
       {"outrate", required_argument, 0, 'o' },
       {"phase", required_argument, 0, 'P' },
       {"band-width", required_argument, 0, 'B' },
+      {"replay-gain", required_argument, 0, 'r' },
       {"volume", required_argument, 0, 'v' },
       {"race-delay", required_argument, 0, 'd' },
       {"race-volume", required_argument, 0, 'a' },
@@ -322,6 +328,7 @@ int main(int argc, char *argv[])
   start = 0;
   until = 0;
   total = 0;
+  gain = 1.0;
   vol = 1.0;
   att = 0.0;
   delay = 12;
@@ -333,6 +340,9 @@ int main(int argc, char *argv[])
       switch (optc) {
       case 'v':
         vol = atof(optarg);
+        break;
+      case 'r':
+        gain = atof(optarg);
         break;
       case 'i':
         inrate = atof(optarg);
@@ -473,7 +483,7 @@ int main(int argc, char *argv[])
   if (verbose) {
      fprintf(stderr, "resample_soxr: ");
      fprintf(stderr, "vol %.3f, input rate %.3f output rate %.3f.\n", 
-                     (double)vol, (double)inrate, (double)outrate);
+                     (double)(vol*gain), (double)inrate, (double)outrate);
   }
 
   /* allocate buffer */
@@ -538,17 +548,19 @@ int main(int argc, char *argv[])
       exit(3);
     }
     /* apply volume change */
-    if (vol != 1.0 || fadecount > 0) {
-        for(i=0; i<2*outdone; i++) {
-            out[i] *= vol;
+    if (vol != 1.0 || gain != 1.0 || fadecount > 0) {
+        for(i=0, vg=vol*gain; i<2*outdone; i++) {
+            out[i] *= vg;
             /* change vol slightly while fading to new one */
             if (fadecount > 0) {
               vol += vdiff;
+              vg = vol*gain;
               fadecount--;
               if (fadecount == 0) {
                   /* now set vol to precisely the new value and disable
                      fading */
                   vol = nvol;
+                  vg = vol*gain;
                   fadecount = -1;
               }
             }
@@ -605,7 +617,7 @@ int main(int argc, char *argv[])
              if (verbose) {
                 fprintf(stderr, "resample_soxr: Reread new race parameters: (%f) ", ntime);
                 fprintf(stderr, "vol %.3f, race att %.3f delay %ld.\n", 
-                                (double)nvol, (double)natt, (long)ndelay);
+                               (double)(nvol*gain), (double)natt, (long)ndelay);
              }
            }
         }
