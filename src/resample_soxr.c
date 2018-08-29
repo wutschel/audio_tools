@@ -335,7 +335,8 @@ int main(int argc, char *argv[])
   fadinglength = 44100;
   pnam = NULL;
   verbose = 0;
-  while ((optc = getopt_long(argc, argv, "i:o:P:B:v:s:u:n:d:a:l:F:b:f:m:pVh",
+  while ((optc = getopt_long(argc, argv, 
+          "i:o:P:B:r:v:d:a:F:l:c:f:m:s:u:n:b:pVh",
           longoptions, &optind)) != -1) {
       switch (optc) {
       case 'v':
