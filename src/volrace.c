@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, " float output,");
      if (fnam)
         fprintf(stderr, " parameters from file,");
-     fprintf(stderr, "vol %.3f, race att %.3f delay %ld.\n", (double)vol, (double)att, (long)delay);
+     fprintf(stderr, " vol %.3f, race att %.3f delay %ld.\n", (double)vol, (double)att, (long)delay);
   }
 
   /* if count >= 0 we are fading the parameters to a new value */
