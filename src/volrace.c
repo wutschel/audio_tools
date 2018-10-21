@@ -81,6 +81,11 @@ void usage( ) {
 "      will be inverted. Default is 0.01, and the absolute value of floatval\n"
 "      must not be larger than max-volume, see below.\n"
 "\n"
+"  --replay-gain=floatval, -r floatval\n"
+"      the value of --volume is multiplied by this factor.\n"
+"      The default is '1.0'. This can be useful if the volume is changed\n"
+"      during runtime via a --param-file.\n"
+"\n"
 "  --race-delay=val, -d val\n"
 "      the delay for RACE as (integer) number of samples (per channel).\n"
 "      Default is 12.\n"
@@ -217,6 +222,7 @@ void sanitizeparams(double maxvol, double* vp, int* delay, double* att, int bl){
 int main(int argc, char *argv[])
 {
   double att, vol, maxvol, ptime=0.0, natt, nvol, ntime, vdiff, adiff;
+  double gain, vg;
   double buf[2*LEN+2*MAXDELAY], inp[2*LEN], out[2*LEN];
   float inpfloat[2*LEN], outfloat[2*LEN];
   int optc, optind, blen, delay, ndelay, i, check, mlen, change, count,
@@ -230,6 +236,7 @@ int main(int argc, char *argv[])
   /* read command line options */
   static struct option longoptions[] = {
       {"volume", required_argument, 0,  'v' },
+      {"replay-gain", required_argument, 0, 'r' },
       {"race-delay", required_argument,       0,  'd' },
       {"race-volume", required_argument, 0,  'a' },
       {"buffer-length", required_argument,       0,  'b' },
@@ -245,6 +252,7 @@ int main(int argc, char *argv[])
   };
   /* defaults */
   vol = 0.01;
+  gain = 1.0;
   delay = 12;
   att = 0.0;
   blen = 8192;
@@ -254,11 +262,14 @@ int main(int argc, char *argv[])
   verbose = 0;
   floatin = FALSE;
   floatout = FALSE;
-  while ((optc = getopt_long(argc, argv, "v:d:a:b:f:m:l:IOVh",
+  while ((optc = getopt_long(argc, argv, "v:r:d:a:b:f:m:l:IOVh",
           longoptions, &optind)) != -1) {
       switch (optc) {
       case 'v':
         vol = atof(optarg);
+        break;
+      case 'r':
+        gain = atof(optarg);
         break;
       case 'd':
         delay = atoi(optarg);
@@ -323,7 +334,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, " float output,");
      if (fnam)
         fprintf(stderr, " parameters from file,");
-     fprintf(stderr, " vol %.3f, race att %.3f delay %ld.\n", (double)vol, (double)att, (long)delay);
+     fprintf(stderr, " vol %.3f, race att %.3f delay %ld.\n", 
+                     (double)(vol*gain), (double)att, (long)delay);
   }
 
   /* if count >= 0 we are fading the parameters to a new value */
@@ -343,10 +355,10 @@ int main(int argc, char *argv[])
       mlen = fread((void*)inp, 2*sizeof(double), blen, stdin);
     if (mlen == 0)  /* done */
       break;
-    for (i=0; i<mlen; i++) {
+    for (i=0, vg=vol*gain; i<mlen; i++) {
       /* copy into buf with delayed race signal */
-      buf[2*(i+delay)] = vol*inp[2*i] - att*buf[2*i+1];
-      buf[2*(i+delay)+1] = vol*inp[2*i+1] - att*buf[2*i];
+      buf[2*(i+delay)] = vg*inp[2*i] - att*buf[2*i+1];
+      buf[2*(i+delay)+1] = vg*inp[2*i+1] - att*buf[2*i];
       if (floatout) {
         outfloat[2*i] = (float)(buf[2*(i+delay)]);
         outfloat[2*i+1] = (float)(buf[2*(i+delay)+1]);
@@ -357,12 +369,14 @@ int main(int argc, char *argv[])
       /* change parameters slightly while fading to new ones */
       if (count > 0) {
         vol += vdiff;
+        vg = vol*gain;
         att += adiff;
         count--;
       } else if (count == 0) {
         /* now set vol and att to precisely the new values and disable
            fading by setting count == -1 */
         vol = nvol;
+        vg = vol*gain;
         att = natt;
         count--;
       }
@@ -401,7 +415,8 @@ int main(int argc, char *argv[])
              delay = ndelay;
              if (verbose) {
                 fprintf(stderr, "volrace: Reread new parameters: (%f) ", ntime);
-                fprintf(stderr, "vol %.3f, race att %.3f delay %ld.\n", (double)nvol, (double)natt, (long)ndelay);
+                fprintf(stderr, "vol %.3f, race att %.3f delay %ld.\n", 
+                        (double)(nvol*gain), (double)natt, (long)ndelay);
              }
            }
         }
