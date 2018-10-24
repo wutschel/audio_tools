@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 {
     struct sockaddr_in serv_addr;
     int listenfd, connfd, ifd, s, moreinput, optval=1, verbose, rate,
-        extrabps, bytesperframe, optc, interval, shared, innetbufsize,
+        bytesperframe, optc, interval, shared, innetbufsize,
         outnetbufsize, dsync;
     long blen, hlen, ilen, olen, outpersec, loopspersec, nsec, count, wnext,
          badreads, badreadbytes, badwrites, badwritebytes, lcount;
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
     void *buf, *iptr, *optr, *max;
     char *port, *inhost, *inport, *outfile, *infile;
     struct timespec mtime;
-    double looperr, extraerr, off;
+    double looperr, extraerr, extrabps, off;
     /* variables for shared memory input */
     char **fname, *fnames[100], **tmpname, *tmpnames[100], **mem, *mems[100],
          *ptr;
@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
     infile = NULL;
     shared = 0;
     interval = 0;
-    extrabps = 0;
+    extrabps = 0.0;
     innetbufsize = 0;
     outnetbufsize = 0;
     verbose = 0;
@@ -389,7 +389,12 @@ int main(int argc, char *argv[])
         }
     }
     if (verbose) {
-       fprintf(stderr, "bufhrt: Writing %ld bytes per second to ", outpersec);
+       fprintf(stderr, "bufhrt: Writing %ld", outpersec);
+       if (extrabps < 0.0)
+           fprintf(stderr, "%.1lf", extrabps);
+       else if (extrabps > 0.0)
+           fprintf(stderr, "+%.1lf", extrabps);
+       fprintf(stderr, " bytes per second to ");
        if (port != NULL)
           fprintf(stderr, "port %s.\n", port);
        else if (connfd == 1)
