@@ -2,7 +2,7 @@
 
 0.7 to 0.8
 
-- added --replay-gain option to resample_soxr.
+- added --replay-gain option to resample_soxr and volrace.
 
 - fixed possible segfault of resample_soxr in rare
   cases of parameter combinations involving RACE.
