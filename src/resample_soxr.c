@@ -96,11 +96,16 @@ void usage( ) {
 "      and should usually be fine.\n"
 "\n"
 "  --band-width=floatval, -B floatval\n"
-"     the band-width of the filter used during resampling; see the \n"
-"     documentation of the rate effect in 'sox' for more details. The value\n"
-"     is given as percentage (of the Nyquist frequency of the smaller \n"
-"     sampling rate). The allowed range is 74.0..99.7, the default is 91.09\n"
-"     (that is the filter is flat up to about 20kHz).\n"
+"      the band-width of the filter used during resampling; see the \n"
+"      documentation of the rate effect in 'sox' for more details. The value\n"
+"      is given as percentage (of the Nyquist frequency of the smaller \n"
+"      sampling rate). The allowed range is 74.0..99.7, the default is 91.09\n"
+"      (that is the filter is flat up to about 20kHz).\n"
+"\n"
+"  --precision=floatval, -e floatval\n"
+"      the bit precision for resampling; higher values cause higher CPU usage.\n"
+"      The valid range is 16.0..33.0, the default is 33.0 and should usually\n"
+"      be fine (except lower CPU usage is essential).\n"
 "\n"
 "  --file=fname, -f fname\n"
 "      name of an input audio file (flac, wav, aiff, ...). The default\n"
@@ -266,7 +271,7 @@ void sanitizeraceparams(int* delay, double* att, long nch){
 int main(int argc, char *argv[])
 {
   /* variables for the resampler */
-  double inrate, outrate, phase, bwidth, OLEN;
+  double inrate, outrate, phase, bwidth, prec, OLEN;
   double *inp, *out;
   int verbose, optc, fd;
   long intotal = 0, outtotal = 0, blen, mlen, check, i, nch;
@@ -298,6 +303,7 @@ int main(int argc, char *argv[])
       {"outrate", required_argument, 0, 'o' },
       {"phase", required_argument, 0, 'P' },
       {"band-width", required_argument, 0, 'B' },
+      {"precision", required_argument, 0, 'e' },
       {"replay-gain", required_argument, 0, 'r' },
       {"volume", required_argument, 0, 'v' },
       {"race-delay", required_argument, 0, 'd' },
@@ -321,6 +327,7 @@ int main(int argc, char *argv[])
   outrate = 192000.0;
   phase = 25.0; 
   bwidth = 0.0;
+  prec = 33.0;
   nch = 2;
   blen = 8192;
   fnam = NULL;
@@ -336,7 +343,7 @@ int main(int argc, char *argv[])
   pnam = NULL;
   verbose = 0;
   while ((optc = getopt_long(argc, argv, 
-          "i:o:P:B:r:v:d:a:F:l:c:f:m:s:u:n:b:pVh",
+          "i:o:P:B:e:r:v:d:a:F:l:c:f:m:s:u:n:b:pVh",
           longoptions, &optind)) != -1) {
       switch (optc) {
       case 'v':
@@ -360,6 +367,11 @@ int main(int argc, char *argv[])
         bwidth = atof(optarg);
         if (bwidth < 74.0 || bwidth > 99.7)
            bwidth = 0.0;
+        break;
+      case 'e':
+        prec = atof(optarg);
+        if (prec < 16.0 || prec > 33.0)
+           prec = 33.0;
         break;
       case 'c':
         nch = atoi(optarg);
@@ -492,13 +504,17 @@ int main(int argc, char *argv[])
   OLEN = (long)(blen*(outrate/inrate+1.0));
   out = (double*) malloc(nch*OLEN*sizeof(double));
   /* create resampler for 64 bit floats and high quality */
+  /* the paramters are documented in the soxr.h file, see
+          https://sourceforge.net/p/soxr/code/ci/master/tree/src/soxr.h
+     the 0x17 sets the parameters as SOXR_32_BITQ + SOXR_INTERMEDIATE_PHASE
+     and we can change specific components afterwards.  */
   soxr_quality_spec_t  q_spec = soxr_quality_spec(0x17, 0);
   q_spec.phase_response = phase;
-  q_spec.precision = 33.0;
+  q_spec.precision = prec;
   if (bwidth != 0.0)
      q_spec.passband_end = bwidth/100.0;
   if (verbose) {
-      fprintf(stderr, "resample_soxr: resampling with quality %.3f, "
+      fprintf(stderr, "resample_soxr: resampling with precision %.3f, "
               "phase %.3f, bandwidth %.3f\n", q_spec.precision,
               q_spec.phase_response, q_spec.passband_end*100.0);
       fflush(stderr);
