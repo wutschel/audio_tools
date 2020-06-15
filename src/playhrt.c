@@ -44,9 +44,9 @@ void usage( ) {
 "  a chunk of input data, preparing data for the audio driver, then it\n"
 "  sleeps until a specific instant of time and after wakeup it hands data\n"
 "  to the audio driver. In contrast to other player programs this is done\n"
-"  with a very precise timing such that no buffers underrun or overrun an\n"
+"  with a very precise timing such that no buffers underrun or overrun and\n"
 "  no reading or writing of data is blocking. Furthermore, the data are\n"
-"  refreshed in RAM directly before turning them to the audio driver.\n"
+"  refreshed in RAM directly before copying them to the audio driver.\n"
 "\n"
 "  The Linux kernel needs the highres-timer functionality enabled (on most\n"
 "  systems this is the case).\n"
@@ -62,7 +62,7 @@ void usage( ) {
 "  too many other things on the same computer during playback. A high\n"
 "  priority can be specified with the 'chrt' command:\n"
 "\n"
-"  chrt -f 99 playhrt .....\n"
+"  chrt -f 70 playhrt .....\n"
 "\n"
 "  (Depending on the configuration of your computer you may need root\n"
 "  privileges for this, in that case use 'sudo chrt -f 99 playhrt ....' \n"
@@ -171,7 +171,7 @@ void usage( ) {
 "      in --mmap mode tries to self adjust and suggest better values\n"
 "      of the --extra-bytes-per-second parameter by checking the average\n"
 "      size of space available in the hardware buffer. The --no-buf-stats\n"
-"      option disabled this check and adjustment. So, use this option\n"
+"      option disables this check and adjustment. So, use this option\n"
 "      only after finding the correct --extra-bytes-per-second parameter.\n"
 "\n"
 "  --stripped, -X\n"
@@ -179,7 +179,7 @@ void usage( ) {
 "      are switched on. With this option specific code is run which has the\n"
 "      code for statistics stripped.\n"
 "\n"
-"  --in-net-buffer-size=intval, -N intval\n"
+"  --in-net-buffer-size=intval, -K intval\n"
 "      when reading from the network this allows to set the buffer\n"
 "      size for the incoming data. This is for finetuning only, normally\n"
 "      the operating system chooses sizes to guarantee constant data\n"
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
     stripped = 0;
     dobufstats = 1;
     countdelay = 1;
-    while ((optc = getopt_long(argc, argv, "r:p:Sb:D:i:n:s:f:k:Mc:P:d:e:m:o:NvVh",
+    while ((optc = getopt_long(argc, argv, "r:p:Sb:D:i:n:s:f:k:Mc:P:d:e:m:K:o:NXO:vyjVh",
             longoptions, &optind)) != -1) {
         switch (optc) {
         case 'r':
