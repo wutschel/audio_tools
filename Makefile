@@ -6,10 +6,10 @@ REFRESH=""
 ARCH=$(shell uname -m)
 
 # normal CFLAGS
-CFLAGS=-O2 -Wall -fgnu89-inline -DREFRESH$(REFRESH)
+CFLAGS=-O2 -Wall -D_FILE_OFFSET_BITS=64 -fgnu89-inline -DREFRESH$(REFRESH)
 
 # CFLAGS without optimization
-CFLAGSNO=-O0 -Wall -fgnu89-inline -DREFRESH$(REFRESH)
+CFLAGSNO=-O0 -Wall -D_FILE_OFFSET_BITS=64 -fgnu89-inline -DREFRESH$(REFRESH)
 
 # targets
 ALL: bin tmp bin/volrace bin/bufhrt bin/highrestest \
@@ -53,13 +53,13 @@ bin/playhrt_static: src/version.h tmp/net.o src/playhrt.c tmp/cprefresh.o tmp/cp
 	$(CC) $(CFLAGSNO) -DALSANC -I$(ALSANC)/include -L$(ALSANC)/lib -o bin/playhrt_static src/playhrt.c tmp/net.o tmp/cprefresh.o tmp/cprefresh_ass.o -lasound -lrt -lpthread -lm -ldl -static
 
 bin/bufhrt: src/version.h tmp/net.o src/bufhrt.c tmp/cprefresh.o tmp/cprefresh_ass.o |bin
-	$(CC) $(CFLAGSNO) -D_FILE_OFFSET_BITS=64 -o bin/bufhrt tmp/net.o tmp/cprefresh.o tmp/cprefresh_ass.o src/bufhrt.c -lpthread -lrt
+	$(CC) $(CFLAGSNO) -o bin/bufhrt tmp/net.o tmp/cprefresh.o tmp/cprefresh_ass.o src/bufhrt.c -lpthread -lrt
 
 bin/highrestest: src/highrestest.c |bin
 	$(CC) $(CFLAGSNO) -o bin/highrestest src/highrestest.c -lrt
 
 bin/writeloop: src/version.h src/writeloop.c tmp/cprefresh.o tmp/cprefresh_ass.o |bin
-	$(CC) $(CFLAGS) -D_FILE_OFFSET_BITS=64 -o bin/writeloop tmp/cprefresh.o tmp/cprefresh_ass.o src/writeloop.c -lpthread -lrt
+	$(CC) $(CFLAGS) -o bin/writeloop tmp/cprefresh.o tmp/cprefresh_ass.o src/writeloop.c -lpthread -lrt
 
 bin/catloop: src/version.h src/catloop.c |bin
 	$(CC) $(CFLAGS) -o bin/catloop src/catloop.c -lpthread -lrt
